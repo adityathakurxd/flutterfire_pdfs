@@ -160,3 +160,118 @@ Future<firebase_storage.UploadTask> uploadFile(File file) async {
 ```
 The file would be saved inside playground as some-file.pdf on your Cloud Storage.
 
+## View PDF from Firebase Storage
+
+To work with PDF Viewer we'll use two classes: a `loader.dart` and a `viewer.dart`. The homepage widget is where we get URL from Firebase Storage and then display PDF using URL in viewer widget.
+
+**Imports used:**
+```dart
+import 'package:college_app/screens/notes.dart';  
+import 'package:flutter/material.dart';  
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;  
+import 'package:flutter_plugin_pdf_viewer/flutter_plugin_pdf_viewer.dart';
+```
+ **Initialise a LoadURL Stateful Widget:**
+ ```dart
+ class LoadURL extends StatefulWidget {  
+  @override  
+  _LoadURLState createState() => _LoadURLState();  
+}  
+  
+class _LoadURLState extends State<LoadURL> {  
+  @override  
+  Widget build(BuildContext context) {  
+    return Container();  
+  }  
+}
+```
+
+**Initialise an instance of Firebase Storage:**
+```dart
+firebase_storage.FirebaseStorage storage = firebase_storage.FirebaseStorage.instance;
+```
+**Define a function to list all the directories on Storage:**
+```dart
+Future<void> listExample() async {  
+  firebase_storage.ListResult result =  
+  await firebase_storage.FirebaseStorage.instance.ref().child('notes').listAll();  
+  
+  result.items.forEach((firebase_storage.Reference ref) {  
+    print('Found file: $ref');  
+  });  
+  
+  result.prefixes.forEach((firebase_storage.Reference ref) {  
+    print('Found directory: $ref');  
+  });  
+}
+```
+**Define a function to download URL:**
+```dart
+Future<void> downloadURLExample() async {  
+  String downloadURL = await firebase_storage.FirebaseStorage.instance  
+  .ref('notes/name.pdf')  
+      .getDownloadURL();  
+  print(downloadURL);  
+  PDFDocument doc = await PDFDocument.fromURL(downloadURL);  
+  Navigator.push(context, MaterialPageRoute(builder: (context)=>ViewPDF(doc)));  //Notice the Push Route once this is done.
+}
+```
+**Note**: You can use the directories found from listExample function and save them to a variable and use string interpolation to define path in downloadURLExample function.
+
+**Inside the `initState` we call the two functions:**
+```dart
+@override  
+void initState() {  
+  // TODO: implement initState  
+  super.initState();    
+  listExample();  
+  downloadURLExample();  
+  print("All done!");  
+}
+```
+
+While the `initState` works in the background to fetch files, the builder can return a `CircularProgressIndicator()`:
+```dart
+@override  
+Widget build(BuildContext context) {  
+  return Center(  
+    child: CircularProgressIndicator(  
+    ),  
+  );  
+}
+```
+**When the `initState` is done, a new widget will be pushed in from `viewer.dart`.**
+
+**Initialise a Stateful Widget:**
+```dart
+class ViewPDF extends StatefulWidget {  
+  @override  
+  _ViewPDFState createState() => _ViewPDFState();  
+}  
+  
+class _ViewPDFState extends State<ViewPDF> {  
+  @override  
+  Widget build(BuildContext context) {  
+    return Container();  
+  }  
+}
+```
+
+**Create a constructor that'll take in a `PDFDocument document` as parameter and display the pdf in builder.**
+```dart
+class ViewPDF extends StatefulWidget {  
+  PDFDocument document;  
+  ViewPDF(this.document);  
+  @override  
+  _ViewPDFState createState() => _ViewPDFState();  
+}  
+  
+class _ViewPDFState extends State<ViewPDF> {  
+  @override  
+  Widget build(BuildContext context) {  
+    return Center(  
+        child: PDFViewer(document: widget.document));  
+  }  
+}
+```
+and, this should load up the PDF when run :)
